@@ -66,8 +66,8 @@
                   target0.requestPointerLock();
                 });
 
-                var x = innerframe.getBoundingClientRect().x + target1.getBoundingClientRect().x;
-                var y = innerframe.getBoundingClientRect().y + target1.getBoundingClientRect().y;
+                var x = Math.round(innerframe.getBoundingClientRect().x + target1.getBoundingClientRect().x);
+                var y = Math.round(innerframe.getBoundingClientRect().y + target1.getBoundingClientRect().y);
                 // Inject mouse input
                 new test_driver.Actions()
                                .pointerMove(5, 5, {origin: target0})
