@@ -1,3 +1,4 @@
+// DO NOT SUBMIT
 var All_Pointer_Events = [
         "pointerdown",
         "pointerup",
