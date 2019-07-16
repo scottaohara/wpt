@@ -48,6 +48,16 @@
                 lastScreenY = 0;
             }
 
+            var nonPointermoveEventList = [
+                  "pointerover",
+                  "pointerenter",
+                  "pointerdown",
+                  "pointerup",
+                  "pointerout",
+                  "pointerleave",
+                  "gotpointercapture",
+                  "lostpointercapture"];
+
             function injectInput(pointerType) {
                 var pointerId = pointerType + "Pointer1";
                 return new test_driver.Actions()
@@ -65,6 +75,24 @@
                 var test_pointerEvent = setup_pointerevent_test("pointerevent attributes", ALL_POINTERS);
 
                 [document, document.getElementById('innerFrame').contentDocument].forEach(function(element) {
+                  nonPointermoveEventList.forEach(function(eventName) {
+                    on_event(element, eventName, function (event) {
+                      if (startSummation) {
+                        test_pointerEvent.step(function() {
+                          assert_equals(event.movementX, 0, "movementX should be 0 for event other than pointermove.");
+                          assert_equals(event.movementY, 0, "movementY should be 0 for event other than pointermove.");
+                        });
+                        // The first move inside frame should have zero movements because the frame
+                        // has no info of the previous events, set the lastScreenX/Y on pointerenter
+                        // to ensure that.
+                        if (event.type == "pointerenter") {
+                          lastScreenX = event.screenX;
+                          lastScreenY = event.screenY;
+                        }
+                      }
+                    });
+                  });
+
                   on_event(element, 'pointermove', function (event) {
                     if (startSummation) {
                       test_pointerEvent.step(function() {
