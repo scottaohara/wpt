@@ -14,6 +14,7 @@ RUN apt-get -qqy update \
     fluxbox \
     gdebi \
     git \
+    default-jre \
     locales \
     pulseaudio \
     python \
