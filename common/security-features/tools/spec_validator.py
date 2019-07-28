@@ -78,8 +78,8 @@ def validate(spec_json, details):
 
     details['object'] = spec_json
     assert_contains_only_fields(spec_json, [
-        "specification", "delivery_key", "test_expansion_schema",
-        "excluded_tests"
+        "specification", "delivery_key", "delivery_type_schema",
+        "source_context_schema", "test_expansion_schema", "excluded_tests"
     ])
     assert_non_empty_list(spec_json, "specification")
     assert_non_empty_dict(spec_json, "test_expansion_schema")
@@ -126,8 +126,8 @@ def validate(spec_json, details):
     # Validate the test_expansion schema members.
     details['object'] = test_expansion_schema
     assert_contains_only_fields(test_expansion_schema, [
-        'expansion', 'source_scheme', 'delivery_type', 'delivery_value',
-        'redirection', 'subresource', 'origin', 'expectation'
+        'expansion', 'source_scheme', 'source_context', 'delivery_type',
+        'delivery_value', 'redirection', 'subresource', 'origin', 'expectation'
     ])
     # Validate excluded tests.
     details['object'] = excluded_tests

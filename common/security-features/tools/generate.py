@@ -1,9 +1,12 @@
 from __future__ import print_function
 
-import copy
-import os, sys, json
-import spec_validator
 import argparse
+import copy
+import json
+import os
+import sys
+
+import spec_validator
 import util
 
 
@@ -54,10 +57,99 @@ def dump_test_parameters(selection):
     del selection['name']
 
     return json.dumps(
-        selection, indent=2, separators=(',', ': '), sort_keys=True)
+        selection,
+        indent=2,
+        separators=(',', ': '),
+        sort_keys=True,
+        cls=util.CustomEncoder)
 
 
-def generate_selection(config, selection, spec, test_html_template_basename):
+def get_test_filename(config, selection):
+    '''Returns the filname for the main test HTML file'''
+
+    selection_for_filename = copy.deepcopy(selection)
+    # Use 'unset' rather than 'None' in test filenames.
+    if selection_for_filename['delivery_value'] is None:
+        selection_for_filename['delivery_value'] = 'unset'
+
+    return os.path.join(config.spec_directory,
+                        config.test_file_path_pattern % selection_for_filename)
+
+
+def get_meta_and_headers(policy_deliveries):
+    # type: typing.List[util.PolicyDelivery] -> dict
+    '''
+    Generate <meta> elements and HTTP headers for the given list of
+    PolicyDelivery.
+    TODO(hiroshige): Merge duplicated code here, scope/document.py, etc.
+    '''
+
+    meta = ''
+    headers = {}
+
+    for delivery in policy_deliveries:
+        if delivery.value is None:
+            continue
+        if delivery.key == 'referrerPolicy':
+            if delivery.type == 'meta':
+                meta += \
+                    '<meta name="referrer" content="%s">' % delivery.value
+            elif delivery.type == 'http-rp':
+                headers['Referrer-Policy'] = delivery.value
+                # TODO(kristijanburnik): Limit to WPT origins.
+                headers['Access-Control-Allow-Origin'] = '*'
+            else:
+                raise Exception('Invalid delivery_type: %s' % delivery.type)
+        elif delivery.key == 'mixedContent':
+            assert (delivery.value == 'opt-in')
+            if delivery.type == 'meta':
+                meta += '<meta http-equiv="Content-Security-Policy" ' + \
+                       'content="block-all-mixed-content">'
+            elif delivery.type == 'http-rp':
+                headers['Content-Security-Policy'] = 'block-all-mixed-content'
+            else:
+                raise Exception('Invalid delivery_type: %s' % delivery.type)
+        else:
+            raise Exception('Invalid delivery_key: %s' % delivery.key)
+    return {"meta": meta, "headers": headers}
+
+
+def generate_selection(source_context_schema, delivery_type_schema, config,
+                       selection, spec, test_html_template_basename):
+    test_filename = get_test_filename(config, selection)
+
+    target_policy_delivery = util.PolicyDelivery(selection['delivery_type'],
+                                                 selection['delivery_key'],
+                                                 selection['delivery_value'])
+
+    source_context_scheme = source_context_schema[selection['source_context']]
+
+    source_context_list = []
+    for source_context in source_context_scheme['sourceContextList']:
+        source_context_list.append(
+            util.SourceContext.from_json(
+                source_context, target_policy_delivery, delivery_type_schema))
+
+    top_source_context = source_context_list.pop(0)
+    assert (top_source_context.source_context_type == 'top')
+
+    selection['source_context_list'] = source_context_list
+
+    selection[
+        'subresource_policy_deliveries'] = util.PolicyDelivery.list_from_json(
+            source_context_scheme['subresourcePolicyDeliveries'],
+            target_policy_delivery,
+            delivery_type_schema['subresource'][selection['subresource']])
+
+    # We no longer need delivery-related fields in `selection`, because
+    # they will be processed via `source_context_list`.
+    # Therefore we delete such fields, to include only necessary fields
+    # in generated test files.
+    del selection['source_context']
+    del selection['delivery_type']
+    del selection['delivery_key']
+    del selection['delivery_value']
+
     test_parameters = dump_test_parameters(selection)
     # Adjust the template for the test invoking JS. Indent it to look nice.
     indent = "\n" + " " * 8
@@ -71,7 +163,6 @@ def generate_selection(config, selection, spec, test_html_template_basename):
       ).start();
       ''' % (config.test_case_name, test_parameters)
 
-    selection['spec_name'] = spec['name']
     selection[
         'test_page_title'] = config.test_page_title_template % spec['title']
     selection['spec_description'] = spec['description']
@@ -79,11 +170,6 @@ def generate_selection(config, selection, spec, test_html_template_basename):
     selection['helper_js'] = config.helper_js
     selection['sanity_checker_js'] = config.sanity_checker_js
     selection['spec_json_js'] = config.spec_json_js
-
-    test_filename = os.path.join(config.spec_directory,
-                                 config.test_file_path_pattern % selection)
-    test_headers_filename = test_filename + ".headers"
-    test_directory = os.path.dirname(test_filename)
 
     test_html_template = util.get_template(test_html_template_basename)
     disclaimer_template = util.get_template('disclaimer.template')
@@ -105,17 +191,17 @@ def generate_selection(config, selection, spec, test_html_template_basename):
 
     # Directory for the test files.
     try:
-        os.makedirs(test_directory)
+        os.makedirs(os.path.dirname(test_filename))
     except:
         pass
 
-    delivery = config.handleDelivery(selection, spec)
+    delivery = get_meta_and_headers(top_source_context.policy_deliveries)
 
+    # Write .headers files for top-level Documents.
     if len(delivery['headers']) > 0:
-        with open(test_headers_filename, "w") as f:
+        with open(test_filename + ".headers", "w") as f:
             for header in delivery['headers']:
-                f.write(header)
-                f.write('\n')
+                f.write('%s: %s\n' % (header, delivery['headers'][header]))
 
     selection['meta_delivery_method'] = delivery['meta']
     # Obey the lint and pretty format.
@@ -179,7 +265,12 @@ def generate_test_source_files(config, spec_json, target):
 
         for selection_path in output_dict:
             selection = output_dict[selection_path]
-            generate_selection(config, selection, spec, html_template)
+            try:
+                generate_selection(spec_json['source_context_schema'],
+                                   spec_json['delivery_type_schema'], config,
+                                   selection, spec, html_template)
+            except util.ShouldSkip:
+                continue
 
 
 def main(config):

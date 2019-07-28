@@ -10,6 +10,7 @@
           "name": "opt-in-blocks",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context": "*",
           "delivery_type": "*",
           "delivery_value": "opt-in",
           "redirection": "*",
@@ -27,6 +28,7 @@
           "name": "no-opt-in-allows",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context": "*",
           "delivery_type": "*",
           "delivery_value": null,
           "redirection": "*",
@@ -52,6 +54,7 @@
           "name": "opt-in-blocks",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context": "*",
           "delivery_type": "*",
           "delivery_value": "opt-in",
           "redirection": "*",
@@ -69,6 +72,7 @@
           "name": "no-opt-in-blocks",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context": "*",
           "delivery_type": "*",
           "delivery_value": null,
           "redirection": "*",
@@ -86,6 +90,7 @@
           "name": "ws-downgrade-blocks",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context": "*",
           "delivery_type": "*",
           "delivery_value": "*",
           "redirection": "*",
@@ -111,6 +116,7 @@
           "name": "allowed",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context": "*",
           "delivery_type": "*",
           "delivery_value": "*",
           "redirection": [
@@ -130,6 +136,7 @@
           "name": "websocket-allowed",
           "expansion": "default",
           "source_scheme": "https",
+          "source_context": "*",
           "delivery_type": "*",
           "delivery_value": "*",
           "redirection": [
@@ -154,6 +161,7 @@
       "name": "Skip-redundant-no-opt-in",
       "expansion": "*",
       "source_scheme": "*",
+      "source_context": "*",
       "delivery_type": "http-rp",
       "delivery_value": null,
       "redirection": "*",
@@ -168,6 +176,7 @@
       "name": "Redundant-subresources",
       "expansion": "*",
       "source_scheme": "*",
+      "source_context": "*",
       "delivery_type": "*",
       "delivery_value": "*",
       "redirection": "*",
@@ -184,6 +193,7 @@
       "name": "Skip-origins-not-applicable-to-websockets",
       "expansion": "*",
       "source_scheme": "*",
+      "source_context": "*",
       "delivery_type": "*",
       "delivery_value": "*",
       "redirection": "*",
@@ -205,6 +215,7 @@
       "name": "Skip-redundant-for-opt-in-method",
       "expansion": "*",
       "source_scheme": "*",
+      "source_context": "*",
       "delivery_type": "meta",
       "delivery_value": "opt-in",
       "redirection": [
@@ -217,8 +228,144 @@
       },
       "origin": "*",
       "expectation": "*"
+    },
+    {
+      "name": "Subresource types not supported in workers",
+      "expansion": "*",
+      "source_scheme": "*",
+      "redirection": "*",
+      "source_context": [
+        "classic-data-worker",
+        "module-data-worker"
+      ],
+      "origin": "*",
+      "subresource": {
+        "blockable": [
+          "script-tag",
+          "link-css-tag",
+          "worklet-animation-top-level",
+          "worklet-audio-top-level",
+          "worklet-layout-top-level",
+          "worklet-paint-top-level",
+          "worklet-animation-data-import",
+          "worklet-audio-data-import",
+          "worklet-layout-data-import",
+          "worklet-paint-data-import",
+          "a-tag",
+          "object-tag",
+          "picture-tag",
+          "link-prefetch-tag",
+          "beacon-request"
+        ],
+        "optionally-blockable": "*"
+      },
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "expectation": "*"
+    },
+    {
+      "name": "Subresource types not supported in data: workers",
+      "expansion": "*",
+      "source_scheme": "*",
+      "redirection": "*",
+      "source_context": [
+        "classic-data-worker",
+        "module-data-worker"
+      ],
+      "origin": "*",
+      "subresource": {
+        "blockable": [
+          "worker-request",
+          "module-worker-top-level",
+          "module-data-worker-import"
+        ],
+        "optionally-blockable": []
+      },
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "expectation": "*"
     }
   ],
+  "delivery_type_schema": {
+    "source_context": {
+      "top": [
+        "http-rp",
+        "meta"
+      ],
+      "classic-data-worker": [],
+      "module-data-worker": []
+    },
+    "subresource": {
+      "script-tag": [],
+      "link-css-tag": [],
+      "xhr-request": [],
+      "worker-request": [],
+      "module-worker-top-level": [],
+      "module-data-worker-import": [],
+      "worklet-animation-top-level": [],
+      "worklet-audio-top-level": [],
+      "worklet-layout-top-level": [],
+      "worklet-paint-top-level": [],
+      "worklet-animation-data-import": [],
+      "worklet-audio-data-import": [],
+      "worklet-layout-data-import": [],
+      "worklet-paint-data-import": [],
+      "fetch-request": [],
+      "a-tag": [],
+      "object-tag": [],
+      "picture-tag": [],
+      "websocket-request": [],
+      "link-prefetch-tag": [],
+      "beacon-request": [],
+      "img-tag": [],
+      "audio-tag": [],
+      "video-tag": []
+    }
+  },
+  "source_context_schema": {
+    "top": {
+      "description": "Policy set by the top-level Document",
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "policy"
+          ]
+        }
+      ],
+      "subresourcePolicyDeliveries": []
+    },
+    "classic-data-worker": {
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "policy"
+          ]
+        },
+        {
+          "sourceContextType": "classic-data-worker",
+          "policyDeliveries": []
+        }
+      ],
+      "subresourcePolicyDeliveries": []
+    },
+    "module-data-worker": {
+      "sourceContextList": [
+        {
+          "sourceContextType": "top",
+          "policyDeliveries": [
+            "policy"
+          ]
+        },
+        {
+          "sourceContextType": "module-data-worker",
+          "policyDeliveries": []
+        }
+      ],
+      "subresourcePolicyDeliveries": []
+    }
+  },
   "test_expansion_schema": {
     "expansion": [
       "default",
@@ -235,6 +382,11 @@
     "delivery_value": [
       null,
       "opt-in"
+    ],
+    "source_context": [
+      "top",
+      "classic-data-worker",
+      "module-data-worker"
     ],
     "redirection": [
       "no-redirect",
@@ -259,7 +411,6 @@
         "worker-request",
         "module-worker-top-level",
         "module-data-worker-import",
-        "classic-data-worker-fetch",
         "worklet-animation-top-level",
         "worklet-audio-top-level",
         "worklet-layout-top-level",
